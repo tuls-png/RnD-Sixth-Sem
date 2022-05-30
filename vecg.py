@@ -7,6 +7,7 @@ from keras import layers, losses
 from sklearn.model_selection import train_test_split
 from keras.models import Model
 import cv2 as cv
+import array as arr
 
 df = pd.read_csv('combined-ptb.csv', header=None)
 df.head()
@@ -42,12 +43,16 @@ n_train_data = train_data[train_labels]
 n_test_data = test_data[test_labels]
 print("n_train_data",n_train_data)
 print("n_test_data",n_test_data)
+print("Normal Train Data\n",n_train_data)
+print("Normal Test Data\n",n_test_data)
 # Abnormal ECG data
 an_train_data = train_data[~train_labels]
 an_test_data = test_data[~test_labels]
 print("an_train_data",an_train_data)
 print("an_test_data",an_test_data)
-#print(n_train_data)
+print("Abnormal Train Data\n",an_train_data)
+print("Abnormal Test Data\n",an_test_data)
+
 # Lets plot a normal ECG
 plt.plot(np.arange(187), n_train_data[1])
 plt.grid()
@@ -61,9 +66,7 @@ plt.title('Abnormal ECG')
 plt.show()
 
 
-# Now let's define the model!
-# Here I have used the Model Subclassing API (but we can also use the Sequential API)
-# The model has 2 parts : 1. Encoder and 2. Decoder
+
 
 class detector(Model):
     def __init__(self):
@@ -125,36 +128,81 @@ print(pred)
 plot(an_test_data, 0)
 print("an_test_data, 0")
 
-'''plot(an_test_data, 1)
+plot(an_test_data, 1)
 print("an_test_data, 1")
 plot(an_test_data, 2)
 print("an_test_data, 2")
-plot(an_test_data, 3)
-print("an_test_data, 3")'''
 
+#Now we display our activations
+number = int(input("Enter the amount of data you would like to see:"))
+for i in range(number):
+    data = test_data[i:i + 1]
+    activations = get_activations(autoencoder.encoder, data, nodes_to_evaluate=None,
+                                  output_format='simple', nested=False, auto_compile=True)
 
+    with open("allactivationrecord.txt", 'a') as f:
+        for key, value in activations.items():
+            f.write(" ------------------------\n \n")
+            f.write(f'Activation Value of  Image{i + 1}:\n')
+            f.write('%s:%s\n' % (key, value))
 
-for i in range (12):
-    an_train_data = train_data[i:i+1]
-    activations = get_activations(autoencoder.encoder, an_train_data, layer_names='dense_2', nodes_to_evaluate=None, output_format='simple', nested=False, auto_compile=True)
-    
-    display_activations(activations, cmap="Dark2", save=False, fig_size=(50, 50))
-    display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i+1}')
-
+    display_activations(activations, cmap=None, save=False, fig_size=(30, 30))
+    display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i + 1}')
+f.close()
 fig = plt.figure(figsize=(10, 100))
 
 # setting values to rows and column variables
-rows =3
-columns = 4
+rows = 3
+columns = number // 2
 
 # reading images
-for i in range(1, 13):
-    Img1 = cv.imread(f'Images/Image{i}/0_dense_2.png')
-    fig.add_subplot(rows, columns, i)
-    plt.title(f"Image{i}")
+for i in range(number):
+    Img1 = cv.imread(f'Images/Image{i + 1}/0_dense_2.png')
+    fig.add_subplot(rows, columns, i + 1)
+    plt.title(f"Image{i + 1}")
     plt.imshow(Img1)
     plt.axis('off')
+plt.show()
 
 
+antest = []
+ntest =[]
+datanumber = int(input("Enter sample size:"))
+node=int(input('Enter node number:'))
+for i in range(datanumber):
+    an = an_test_data[i:i + 1]
+    n = n_test_data[i:i + 1]
+    activations = get_activations(autoencoder.encoder, an, layer_names='dense_2', nodes_to_evaluate=None,
+                                  output_format='simple', nested=False, auto_compile=True)
 
+    activations2 = get_activations(autoencoder.encoder, n, layer_names='dense_2', nodes_to_evaluate=None,
+                                  output_format='simple', nested=False, auto_compile=True)
+
+
+    antest.append(activations['dense_2'][0][node-1])
+    ntest.append(activations2['dense_2'][0][node-1])
+
+    #display_activations(activations, cmap="Dark2", save=False, fig_size=(50, 50))
+    #display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i + 1}')
+
+print(f"The activation values of {node} node for {datanumber} abnormal samples are: ")
+print(antest)
+print(" ")
+print(f"The activation values of {node} node for {datanumber} normal samples are: ")
+print(ntest)
+
+barWidth = 0.15
+fig = plt.subplots(figsize=(12, 8))
+br1 = np.arange(len(antest))
+br2 = [x + barWidth for x in br1]
+plt.bar(br1, antest, color='r', width=barWidth,
+        edgecolor='grey', label='Abnormal Test Data')
+plt.bar(br2, ntest, color ='g', width = barWidth,
+        edgecolor ='grey', label ='Normal Test Data')
+
+plt.xlabel('Sample Number', fontsize=15)
+plt.ylabel('Activation Value', fontsize=15)
+
+
+plt.legend()
 plt.show()
