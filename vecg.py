@@ -137,7 +137,7 @@ print("an_test_data, 2")
 number = int(input("Enter the amount of data you would like to see:"))
 for i in range(number):
     data = test_data[i:i + 1]
-    activations = get_activations(autoencoder.encoder, data, nodes_to_evaluate=None,
+    activations = get_activations(autoencoder.encoder, data, nodes_to_evaluate=None, layer_names="dense_2",
                                   output_format='simple', nested=False, auto_compile=True)
 
     with open("allactivationrecord.txt", 'a') as f:
@@ -168,41 +168,68 @@ plt.show()
 antest = []
 ntest =[]
 datanumber = int(input("Enter sample size:"))
-node=int(input('Enter node number:'))
+
 for i in range(datanumber):
     an = an_test_data[i:i + 1]
     n = n_test_data[i:i + 1]
     activations = get_activations(autoencoder.encoder, an, layer_names='dense_2', nodes_to_evaluate=None,
                                   output_format='simple', nested=False, auto_compile=True)
 
+    print('--------------')
+    print("Activation 1")
+    print(activations)
+    print('--------------')
+
     activations2 = get_activations(autoencoder.encoder, n, layer_names='dense_2', nodes_to_evaluate=None,
                                   output_format='simple', nested=False, auto_compile=True)
 
 
-    antest.append(activations['dense_2'][0][node-1])
-    ntest.append(activations2['dense_2'][0][node-1])
+    print("Activation 2")
+    print(activations2)
+    print('--------------')
+
+
+    with open("activation_record.txt", 'a') as f:
+        for key, value in activations.items():
+            f.write(" ------------------------\n \n")
+            f.write(f'Activation Value of  Image{i+1}:\n')
+            f.write('%s:%s\n' % (key, value))
+    f.close()
+    antest.append(activations['dense_2'][0])
+    ntest.append(activations2['dense_2'][0])
 
     #display_activations(activations, cmap="Dark2", save=False, fig_size=(50, 50))
     #display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i + 1}')
-
+antest1 = []
+ntest1 =[]
+node=int(input('Enter node number:'))
+for i in range(len(antest)):
+    antest1.append(antest[i][node-1])
+    ntest1.append(ntest[i][node-1])
 print(f"The activation values of {node} node for {datanumber} abnormal samples are: ")
-print(antest)
+print(antest1)
 print(" ")
 print(f"The activation values of {node} node for {datanumber} normal samples are: ")
-print(ntest)
+print(ntest1)
 
 barWidth = 0.15
 fig = plt.subplots(figsize=(12, 8))
-br1 = np.arange(len(antest))
+br1 = np.arange(1, len(antest1)+1)
 br2 = [x + barWidth for x in br1]
-plt.bar(br1, antest, color='r', width=barWidth,
+plt.bar(br1, antest1, color='r', width=barWidth,
         edgecolor='grey', label='Abnormal Test Data')
-plt.bar(br2, ntest, color ='g', width = barWidth,
+plt.bar(br2, ntest1, color ='g', width = barWidth,
         edgecolor ='grey', label ='Normal Test Data')
 
 plt.xlabel('Sample Number', fontsize=15)
 plt.ylabel('Activation Value', fontsize=15)
-
+plt.xticks(np.arange(1, len(antest1)+1))
 
 plt.legend()
 plt.show()
+
+
+
+
+
+
