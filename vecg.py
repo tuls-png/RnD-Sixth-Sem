@@ -195,7 +195,7 @@ for i in range(datanumber):
                                   output_format='simple', nested=False, auto_compile=True)
 
     print('--------------')
-    print("Activation 1")
+    print("Activation 1/ Abnormal")
     print(activations)
     print('--------------')
 
@@ -203,7 +203,7 @@ for i in range(datanumber):
                                   output_format='simple', nested=False, auto_compile=True)
 
 
-    print("Activation 2")
+    print("Activation 2/ Normal")
     print(activations2)
     print('--------------')
 
