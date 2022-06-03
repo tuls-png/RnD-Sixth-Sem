@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 from keract import get_activations, display_activations
 from keras import layers, losses
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_curve
 from sklearn.model_selection import train_test_split
 from keras.models import Model
 import cv2 as cv
@@ -177,47 +179,81 @@ def predict(model, data, threshold):
   return tf.math.less(loss, threshold)
 
 accur=[]
-def print_stat(predictions, labels):
 
+def print_stat(predictions, labels):
     lol=accuracy_score(labels, predictions) * 100
     accur.append(lol)
-
-
+    fp = 0
+    fn = 0
+    tp = 0
+    tn = 0
     print("Accuracy in terms of numbers = {}".format(round(accuracy_score(labels, predictions, normalize=False))))
     print("Accuracy in terms of percentage = {}%".format(lol))
     print("Precision = {}".format(precision_score(labels, predictions)))
     print("Recall = {}".format(recall_score(labels, predictions)))
+    if labels[i] == True and predictions[i] == False:
+        fp += 1
+    if labels[i] == False and predictions[i] == True:
+        fn += 1
+    if labels[i] == True and predictions[i] == True:
+        tn += 1
+    if labels[i] == False and predictions[i] == False:
+        tp += 1
+    print('False Positive: ', fp)
+    print('False Negative: ', fn)
+    print('True Positive: ', tp)
+    print('True Negative: ', tn)
 
 
 def print_stats(predictions, labels):
-    n=int(input("Enter a particular value for accuracy:"))
     l=[]
     p=[]
-
-    for i in range(n):
+    fp = 0
+    fn = 0
+    tp=0
+    tn=0
+    print('Current threshold: ', t)
+    for i in range(len(labels)):
         l.append(labels[i])
         p.append(predictions[i])
+
         print("-------------------------------")
         print(f'For {i+1} sample:')
-        if l[i]==True:
+        if l[i]==True and p[i]==True:
             print('Actual: Normal')
-        else:
-            print('Actual: Abnormal')
-        if p[i] == True:
             print('Prediction: Normal')
-        else:
+        elif l[i]==True and p[i]==False:
+            print('Actual: Normal')
+            print('Prediction: Abnormal')
+        elif l[i]==False and p[i]==True:
+            print('Actual: Abnormal')
+            print('Prediction: Normal')
+        elif l[i]==False and p[i]==False:
+            print('Actual: Abnormal')
             print('Prediction: Abnormal')
         if l[i]==p[i]:
             print('The prediction is correct.')
         else:
             print('The prediction is incorrect.')
+        if l[i]==True and p[i]==False:
+            fp+=1
+        if l[i]==False and p[i]==True:
+            fn+=1
+        if l[i]==True and p[i]==True:
+            tn+=1
+        if l[i]==False and p[i]==False:
+            tp+=1
+
     print(" ")
-    print(f'For {n} sample:')
+    print(f'For {len(labels)} sample:')
     print("Accuracy in terms of numbers = {}".format(round(accuracy_score(l, p, normalize=False))))
     print("Accuracy in terms of percentage = {}%".format((accuracy_score(l, p))*100))
     print("Precision = {}".format(precision_score(l, p)))
     print("Recall = {}".format(recall_score(l, p)))
-
+    print('False Positive: ', fp)
+    print('False Negative: ', fn)
+    print('True Positive: ', tp)
+    print('True Negative: ', tn)
 
 
 for i in range(len(thresh)):
@@ -243,7 +279,36 @@ print('     ')
 print_stats(preds, test_labels)
 
 
+model = LogisticRegression(solver='lbfgs')
+model.fit(train_data, train_labels)
+# predict probabilities
+yhat = model.predict_proba(test_data)
+# keep probabilities for the positive outcome only
+yhat = yhat[:, 1]
+# calculate roc curves
+fpr, tpr, thresholds = roc_curve(test_labels, yhat)
+# calculate the g-mean for each threshold
+gmeans = np.sqrt(tpr * (1-fpr))
+# locate the index of the largest g-mean
+ix = np.argmax(gmeans)
+print('Best Threshold=%f, G-Mean=%.3f' % (thresholds[ix], gmeans[ix]))
+# plot the roc curve for the model
+plt.plot([0,1], [0,1], linestyle='--', label='No Skill')
+plt.plot(fpr, tpr, marker='.', label='Logistic')
+plt.scatter(fpr[ix], tpr[ix], marker='o', color='black', label='Best')
+# axis labels
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.legend()
+# show the plot
+plt.show()
 
+preds = predict(autoencoder, test_data, thresholds[ix])
+print(thresholds[ix])
+print(len(preds), len(test_labels))
+print_stat(preds, test_labels)
+
+'''
 #Now we display our activations
 number = int(input("Enter the amount of data you would like to see:"))
 for i in range(number):
@@ -338,9 +403,4 @@ plt.xticks(np.arange(1, len(antest1)+1))
 
 plt.legend()
 plt.show()
-
-
-
-
-
-
+'''
