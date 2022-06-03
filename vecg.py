@@ -4,22 +4,31 @@ import numpy as np
 import pandas as pd
 from keract import get_activations, display_activations
 from keras import layers, losses
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from keras.models import Model
 import cv2 as cv
 import array as arr
 
-df = pd.read_csv('finalcombined.csv', header=None)
+df = pd.read_csv('lmaocombined.csv', header=None)
+raw_data = df.values
 df.head()
 
+
 # Now we will separate the data and labels so that it will be easy for us
-data = df.iloc[:, :-1].values
-labels = df.iloc[:, -1].values
+data = raw_data[:, 0:-1]
+print(len(data))
+labels = raw_data[:, -1]
 print("data",data)
 print("labels",labels)
+print(len(data))
+print(len(labels ))
+train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.19, random_state=0)
+print('train_labels',train_labels)
+print("testlabel",test_labels)
+print(len(train_data)+len(test_labels))
+print(len(labels))
 
-train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
-print("trailabeb",train_labels)
 min = tf.reduce_min(train_data)
 max = tf.reduce_max(train_data)
 print("min",min)
@@ -46,24 +55,27 @@ print("test_labels",test_labels)
 print("#################################")
 print(train_labels)
 print(~train_labels)
+print(len(train_labels)+len(test_labels))
 print("#################################")
 n_train_data = train_data[train_labels]
 n_test_data = test_data[test_labels]
-print("n_train_data",n_train_data)
+print("n_train_data",n_train_data, len(n_train_data))
+print(n_train_data[0][-1])
 print("n_test_data",n_test_data)
 print("Normal Train Data\n",n_train_data)
 print("Normal Test Data\n",n_test_data)
 # Abnormal ECG data
 an_train_data = train_data[~train_labels]
 an_test_data = test_data[~test_labels]
-print("an_train_data",an_train_data)
+print("an_train_data",an_train_data, len(an_train_data))
 print("an_test_data",an_test_data)
+print(an_train_data[0][-1])
 print("Abnormal Train Data\n",an_train_data)
 print("Abnormal Test Data\n",an_test_data)
 
 print(an_test_data[0][-1])
 # Lets plot a normal ECG
-plt.plot(np.arange(187), n_train_data[0])
+plt.plot(np.arange(187), n_train_data[7])
 plt.grid()
 plt.title('Normal ECG')
 plt.show()
@@ -104,6 +116,8 @@ history = autoencoder.fit(n_train_data, n_train_data, epochs=100, batch_size=512
 plt.plot(history.history["loss"], label="Training Loss")
 plt.plot(history.history["val_loss"], label="Validation Loss")
 plt.show()
+
+
 # Now let's define a function in order to plot the original ECG and reconstructed ones and also show the error
 def plot(data, n):
     enc_img = autoencoder.encoder(data)
@@ -122,9 +136,8 @@ print("n_test_data, 0")
 reconstructed = autoencoder.predict(n_train_data)
 train_loss = tf.keras.losses.mae(reconstructed, n_train_data)
 
-t = np.mean(train_loss) + np.std(train_loss)
-print("Threshold", t)
-
+originalthresh = np.mean(train_loss) + np.std(train_loss)
+print(f'Threshold: {originalthresh}')
 
 reconstructed = autoencoder.predict(an_test_data)
 test_loss = tf.keras.losses.mae(reconstructed, an_test_data)
@@ -136,19 +149,98 @@ plt.ylabel("Number of examples")
 plt.legend()
 plt.show()
 
-
 print(train_loss)
 print(test_loss)
-
-
-plot(an_test_data, 0)
 print("an_test_data, 0")
-
-plot(an_test_data, 1)
+plot(an_test_data, 0)
 print("an_test_data, 1")
+plot(an_test_data, 1)
+print("an_test_data, 2")
 plot(an_test_data, 2)
 
 
+x=[0.75, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4,2.6, 2.8, 3]
+print(' - - - - - - - - - - - - - - ')
+print(f'Threshold List: {x}')
+thresh=[]
+for i in range (len(x)):
+    t = np.mean(train_loss) + (np.std(train_loss))*x[i]
+    print(f'For {x[i]}:')
+    print("Threshold", t)
+    thresh.append(t)
+print(' ')
+print('Number of test data: ',len(test_labels))
+
+def predict(model, data, threshold):
+  reconstructions = model(data)
+  loss = tf.keras.losses.mae(reconstructions, data)
+  return tf.math.less(loss, threshold)
+
+accur=[]
+def print_stat(predictions, labels):
+
+    lol=accuracy_score(labels, predictions) * 100
+    accur.append(lol)
+
+
+    print("Accuracy in terms of numbers = {}".format(round(accuracy_score(labels, predictions, normalize=False))))
+    print("Accuracy in terms of percentage = {}%".format(lol))
+    print("Precision = {}".format(precision_score(labels, predictions)))
+    print("Recall = {}".format(recall_score(labels, predictions)))
+
+
+def print_stats(predictions, labels):
+    n=int(input("Enter a particular value for accuracy:"))
+    l=[]
+    p=[]
+
+    for i in range(n):
+        l.append(labels[i])
+        p.append(predictions[i])
+        print("-------------------------------")
+        print(f'For {i+1} sample:')
+        if l[i]==True:
+            print('Actual: Normal')
+        else:
+            print('Actual: Abnormal')
+        if p[i] == True:
+            print('Prediction: Normal')
+        else:
+            print('Prediction: Abnormal')
+        if l[i]==p[i]:
+            print('The prediction is correct.')
+        else:
+            print('The prediction is incorrect.')
+    print(" ")
+    print(f'For {n} sample:')
+    print("Accuracy in terms of numbers = {}".format(round(accuracy_score(l, p, normalize=False))))
+    print("Accuracy in terms of percentage = {}%".format((accuracy_score(l, p))*100))
+    print("Precision = {}".format(precision_score(l, p)))
+    print("Recall = {}".format(recall_score(l, p)))
+
+
+
+for i in range(len(thresh)):
+    preds = predict(autoencoder, test_data, thresh[i])
+    print(" ")
+    print("--------------------------------------------")
+    print(f'For threshold value: {thresh[i]}: ')
+    print_stat(preds, test_labels)
+
+print('!!!!!!!!!!!!!!!!!!!!!!!!!!')
+print('Threshold List:')
+print(thresh)
+print('Accuracy List:')
+print(accur)
+
+plt.plot(thresh, accur)
+plt.xlabel('Threshold value')
+# naming the y axis
+plt.ylabel('Accuracy')
+plt.show()
+
+print('     ')
+print_stats(preds, test_labels)
 
 
 
@@ -246,3 +338,9 @@ plt.xticks(np.arange(1, len(antest1)+1))
 
 plt.legend()
 plt.show()
+
+
+
+
+
+
