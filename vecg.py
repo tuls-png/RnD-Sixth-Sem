@@ -5,17 +5,15 @@ import pandas as pd
 from keract import get_activations, display_activations
 from keras import layers, losses
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_curve
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_curve
+
+from sklearn.metrics import accuracy_score, recall_score, roc_curve
 from sklearn.model_selection import train_test_split
 from keras.models import Model
-import cv2 as cv
-import array as arr
 
-df = pd.read_csv('lmaocombined.csv', header=None)
+
+df = pd.read_csv('lmao2.csv', header=None)
 raw_data = df.values
 df.head()
-
 
 # Now we will separate the data and labels so that it will be easy for us
 data = raw_data[:, 0:-1]
@@ -23,18 +21,16 @@ print(len(data))
 labels = raw_data[:, -1]
 print("data",data)
 print("labels",labels)
-print(len(data))
-print(len(labels ))
+print('Number of data: ',len(data))
+print('Number of labels: ',len(labels ))
 train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.19, random_state=0)
 print('train_labels',train_labels)
 print("testlabel",test_labels)
-print(len(train_data)+len(test_labels))
-print(len(labels))
+
 
 min = tf.reduce_min(train_data)
 max = tf.reduce_max(train_data)
-print("min",min)
-print("max",max)
+
 # Now we will use the formula (data - min)/(max - min)
 train_data = (train_data - min) / (max - min)
 test_data = (test_data - min) / (max - min)
@@ -42,11 +38,8 @@ test_data = (test_data - min) / (max - min)
 # I have converted the data into float
 train_data = tf.cast(train_data, dtype=tf.float32)
 test_data = tf.cast(test_data, dtype=tf.float32)
-print("train_data",train_data)
-print("test_data",test_data)
-print("?????????????????????????????????????????????????")
-print(train_labels)
-print(test_labels)
+
+
 # The labels are either 0 or 1, so I will convert them into boolean(true or false)
 train_labels = train_labels.astype(bool)
 test_labels = test_labels.astype(bool)
@@ -54,28 +47,31 @@ print("train_labels",train_labels)
 print("test_labels",test_labels)
 # Now let's separate the data for normal ECG from that of abnormal ones
 # Normal ECG data
-print("#################################")
-print(train_labels)
-print(~train_labels)
-print(len(train_labels)+len(test_labels))
-print("#################################")
+
 n_train_data = train_data[train_labels]
 n_test_data = test_data[test_labels]
-print("n_train_data",n_train_data, len(n_train_data))
-print(n_train_data[0][-1])
-print("n_test_data",n_test_data)
-print("Normal Train Data\n",n_train_data)
-print("Normal Test Data\n",n_test_data)
+print(' ')
+print('---------------------')
+print("n_train_data:\n",n_train_data, len(n_train_data))
+print(' ')
+print("n_test_data:\n",n_test_data)
+print(' ')
+print("Normal Train Data:\n",n_train_data)
+print(' ')
+print("Normal Test Data:\n",n_test_data)
 # Abnormal ECG data
 an_train_data = train_data[~train_labels]
 an_test_data = test_data[~test_labels]
-print("an_train_data",an_train_data, len(an_train_data))
-print("an_test_data",an_test_data)
-print(an_train_data[0][-1])
-print("Abnormal Train Data\n",an_train_data)
-print("Abnormal Test Data\n",an_test_data)
+print(' ')
+print('---------------------')
+print("an_train_data:\n",an_train_data, len(an_train_data))
+print(' ')
+print("an_test_data:\n",an_test_data)
+print(' ')
+print("Abnormal Train Data:\n",an_train_data)
+print(' ')
+print("Abnormal Test Data:\n",an_test_data)
 
-print(an_test_data[0][-1])
 # Lets plot a normal ECG
 plt.plot(np.arange(187), n_train_data[7])
 plt.grid()
@@ -130,15 +126,17 @@ def plot(data, n):
     plt.legend(labels=['Input', 'Reconstruction', 'Error'])
     plt.show()
 
-
-plot(n_test_data, 0)
+print(' ')
+print('---------------------')
 print("n_test_data, 0")
-
+plot(n_test_data, 0)
 
 reconstructed = autoencoder.predict(n_train_data)
 train_loss = tf.keras.losses.mae(reconstructed, n_train_data)
 
 originalthresh = np.mean(train_loss) + np.std(train_loss)
+print(' ')
+print('---------------------')
 print(f'Threshold: {originalthresh}')
 
 reconstructed = autoencoder.predict(an_test_data)
@@ -151,8 +149,7 @@ plt.ylabel("Number of examples")
 plt.legend()
 plt.show()
 
-print(train_loss)
-print(test_loss)
+
 print("an_test_data, 0")
 plot(an_test_data, 0)
 print("an_test_data, 1")
@@ -162,7 +159,9 @@ plot(an_test_data, 2)
 
 
 x=[0.75, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4,2.6, 2.8, 3]
-print(' - - - - - - - - - - - - - - ')
+
+print(' ')
+print('---------------------')
 print(f'Threshold List: {x}')
 thresh=[]
 for i in range (len(x)):
@@ -187,9 +186,12 @@ def print_stat(predictions, labels):
     fn = 0
     tp = 0
     tn = 0
+
+    print(' ')
+    print('---------------------')
     print("Accuracy in terms of numbers = {}".format(round(accuracy_score(labels, predictions, normalize=False))))
     print("Accuracy in terms of percentage = {}%".format(lol))
-    print("Precision = {}".format(precision_score(labels, predictions)))
+
     print("Recall = {}".format(recall_score(labels, predictions)))
     if labels[i] == True and predictions[i] == False:
         fp += 1
@@ -199,10 +201,10 @@ def print_stat(predictions, labels):
         tn += 1
     if labels[i] == False and predictions[i] == False:
         tp += 1
-    print('False Positive: ', fp)
-    print('False Negative: ', fn)
-    print('True Positive: ', tp)
-    print('True Negative: ', tn)
+    print('Actual Sample: Normal, Predicted Sample: Abnormal \n False Positive: ', fp)
+    print('Actual Sample: Abnormal, Predicted Sample: Normal \n False Negative: ', fn)
+    print('Actual Sample: Normal, Predicted Sample: Normal \n True Positive: ', tp)
+    print('Actual Sample: Abnormal, Predicted Sample: Abnormal \n True Negative: ', tn)
 
 
 def print_stats(predictions, labels):
@@ -248,12 +250,12 @@ def print_stats(predictions, labels):
     print(f'For {len(labels)} sample:')
     print("Accuracy in terms of numbers = {}".format(round(accuracy_score(l, p, normalize=False))))
     print("Accuracy in terms of percentage = {}%".format((accuracy_score(l, p))*100))
-    print("Precision = {}".format(precision_score(l, p)))
+
     print("Recall = {}".format(recall_score(l, p)))
-    print('False Positive: ', fp)
-    print('False Negative: ', fn)
-    print('True Positive: ', tp)
-    print('True Negative: ', tn)
+    print('Actual Sample: Normal, Predicted Sample: Abnormal \n False Positive: ', fp)
+    print('Actual Sample: Abnormal, Predicted Sample: Normal \n False Negative: ', fn)
+    print('Actual Sample: Normal, Predicted Sample: Normal \n True Positive: ', tp)
+    print('Actual Sample: Abnormal, Predicted Sample: Abnormal \n True Negative: ', tn)
 
 
 for i in range(len(thresh)):
@@ -306,7 +308,7 @@ plt.show()
 preds = predict(autoencoder, test_data, thresholds[ix])
 print(thresholds[ix])
 print(len(preds), len(test_labels))
-print_stat(preds, test_labels)
+print_stats(~preds, ~test_labels)
 
 '''
 #Now we display our activations
@@ -315,22 +317,18 @@ for i in range(number):
     data = test_data[i:i + 1]
     activations = get_activations(autoencoder.encoder, data, nodes_to_evaluate=None, layer_names="dense_2",
                                   output_format='simple', nested=False, auto_compile=True)
-
     with open("allactivationrecord.txt", 'a') as f:
         for key, value in activations.items():
             f.write(" ------------------------\n \n")
             f.write(f'Activation Value of  Image{i + 1}:\n')
             f.write('%s:%s\n' % (key, value))
-
     display_activations(activations, cmap=None, save=False, fig_size=(30, 30))
     display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i + 1}')
 f.close()
 fig = plt.figure(figsize=(10, 100))
-
 # setting values to rows and column variables
 rows = 3
 columns = number // 2
-
 # reading images
 for i in range(number):
     Img1 = cv.imread(f'Images/Image{i + 1}/0_dense_2.png')
@@ -339,32 +337,23 @@ for i in range(number):
     plt.imshow(Img1)
     plt.axis('off')
 plt.show()
-
-
 antest = []
 ntest =[]
 datanumber = int(input("Enter sample size:"))
-
 for i in range(datanumber):
     an = an_test_data[i:i + 1]
     n = n_test_data[i:i + 1]
     activations = get_activations(autoencoder.encoder, an, layer_names='dense_2', nodes_to_evaluate=None,
                                   output_format='simple', nested=False, auto_compile=True)
-
     print('--------------')
     print("Activation 1/ Abnormal")
     print(activations)
     print('--------------')
-
     activations2 = get_activations(autoencoder.encoder, n, layer_names='dense_2', nodes_to_evaluate=None,
                                   output_format='simple', nested=False, auto_compile=True)
-
-
     print("Activation 2/ Normal")
     print(activations2)
     print('--------------')
-
-
     with open("activation_record.txt", 'a') as f:
         for key, value in activations.items():
             f.write(" ------------------------\n \n")
@@ -373,7 +362,6 @@ for i in range(datanumber):
     f.close()
     antest.append(activations['dense_2'][0])
     ntest.append(activations2['dense_2'][0])
-
     #display_activations(activations, cmap="Dark2", save=False, fig_size=(50, 50))
     #display_activations(activations, cmap="Dark2", save=True, directory=f'Images/Image{i + 1}')
 antest1 = []
@@ -387,7 +375,6 @@ print(antest1)
 print(" ")
 print(f"The activation values of {node} node for {datanumber} normal samples are: ")
 print(ntest1)
-
 barWidth = 0.15
 fig = plt.subplots(figsize=(12, 8))
 br1 = np.arange(1, len(antest1)+1)
@@ -396,11 +383,9 @@ plt.bar(br1, antest1, color='r', width=barWidth,
         edgecolor='grey', label='Abnormal Test Data')
 plt.bar(br2, ntest1, color ='g', width = barWidth,
         edgecolor ='grey', label ='Normal Test Data')
-
 plt.xlabel('Sample Number', fontsize=15)
 plt.ylabel('Activation Value', fontsize=15)
 plt.xticks(np.arange(1, len(antest1)+1))
-
 plt.legend()
 plt.show()
 '''
